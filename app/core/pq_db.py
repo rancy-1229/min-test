@@ -1,22 +1,18 @@
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+# app/core/pg_db.py
 from sqlalchemy import create_engine
-from app.env import Env
+from sqlalchemy.orm import sessionmaker, Session
+from app.env import env
 
+# 创建引擎
+engine = create_engine(env.PG_DATABASE_URL, pool_pre_ping=True)
 
-# 创建数据库引擎
-engine = create_engine(Env.PG_DATABASE_URL)
+# 创建Session类，后面每个请求独享一个Session实例
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 创建会话工厂
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-# 创建基类
-Base = declarative_base()
-
-# 创建会话
-def get_session():
-    session = SessionLocal()
+# 依赖函数，FastAPI注入用
+def get_db() -> Session:
+    db = SessionLocal()
     try:
-        yield session
+        yield db
     finally:
-        session.close()
+        db.close()
